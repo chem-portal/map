@@ -37,31 +37,41 @@ let alertShown = false;
 document.getElementById('input-bhunksha').addEventListener('change', (e) => {
     if(!alertShown) { alert("Please ensure Image names match PDF names exactly (e.g. 0001.png and 0001.pdf) and are in separate folders."); alertShown = true; }
     const files = e.target.files;
-    document.getElementById('status-bhunksha').textContent = `${files.length} files`;
+    localBhunkshaFiles = {}; // Reset for new folder
     for(let f of files) {
         if(f.name.toLowerCase().endsWith('.png') || f.name.toLowerCase().endsWith('.jpg')) {
-            let code = f.name.split('.')[0].padStart(4, '0');
+            // Remove extension and pad to 4 digits
+            let code = f.name.replace(/\.[^/.]+$/, "").padStart(4, '0');
             localBhunkshaFiles[code] = f;
         }
     }
+    document.getElementById('status-bhunksha').textContent = `${Object.keys(localBhunkshaFiles).length} images found`;
     checkAndStartLocal();
 });
 
 document.getElementById('input-pdf').addEventListener('change', (e) => {
     if(!alertShown) { alert("Please ensure Image names match PDF names exactly (e.g. 0001.png and 0001.pdf) and are in separate folders."); alertShown = true; }
     const files = e.target.files;
-    document.getElementById('status-pdf').textContent = `${files.length} files`;
+    localPdfFiles = {}; // Reset for new folder
     for(let f of files) {
         if(f.name.toLowerCase().endsWith('.pdf')) {
-            let code = f.name.split('.')[0].padStart(4, '0');
+            // Remove extension and pad to 4 digits
+            let code = f.name.replace(/\.[^/.]+$/, "").padStart(4, '0');
             localPdfFiles[code] = f;
         }
     }
+    document.getElementById('status-pdf').textContent = `${Object.keys(localPdfFiles).length} PDFs found`;
     checkAndStartLocal();
 });
 
+// Manual Match Trigger
+document.getElementById('btn-compare').addEventListener('click', checkAndStartLocal);
+
 function checkAndStartLocal() {
-    if(Object.keys(localBhunkshaFiles).length > 0 && Object.keys(localPdfFiles).length > 0) {
+    const bhunkshaCount = Object.keys(localBhunkshaFiles).length;
+    const pdfCount = Object.keys(localPdfFiles).length;
+
+    if(bhunkshaCount > 0 && pdfCount > 0) {
         let matchedData = [];
         let localDataStore = JSON.parse(localStorage.getItem('censusLocalMaps')) || {};
         
@@ -106,8 +116,10 @@ function checkAndStartLocal() {
             currentIndex = 0;
             showViewer();
         } else {
-            alert("No matching files found. Ensure names match (e.g. 0001.png and 0001.pdf).");
+            alert(`No matching files found between ${bhunkshaCount} images and ${pdfCount} PDFs.\nEnsure filenames match exactly (e.g. 0001.png and 0001.pdf).`);
         }
+    } else if (bhunkshaCount > 0 || pdfCount > 0) {
+        console.log(`Waiting for both folders. Bhunksha: ${bhunkshaCount}, PDF: ${pdfCount}`);
     }
 }
 
