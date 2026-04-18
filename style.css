@@ -14,15 +14,13 @@ body {
     background: var(--bg);
     color: var(--text);
     min-height: 100vh;
-    padding: 2rem;
-    background-image: 
-        radial-gradient(at 0% 0%, rgba(99, 102, 241, 0.15) 0px, transparent 50%),
-        radial-gradient(at 100% 100%, rgba(236, 72, 153, 0.15) 0px, transparent 50%);
+    padding: 0;
+    overflow-x: hidden;
 }
 
 .container {
-    max-width: 1400px;
-    margin: 0 auto;
+    max-width: 100%;
+    margin: 0;
 }
 
 header {
@@ -235,7 +233,9 @@ header p {
 
 .overlay-base {
     width: 100%;
+    height: 100%;
     display: block;
+    object-fit: fill; /* Stretches to fill landscape area as requested */
 }
 
 .overlay-top {
@@ -245,10 +245,11 @@ header p {
     width: 100%;
     height: 100%;
     mix-blend-mode: multiply;
-    pointer-events: auto; /* Enable mouse events for dragging */
+    pointer-events: auto;
     cursor: move;
     transform-origin: top left;
     transition: opacity 0.2s ease;
+    object-fit: fill; /* Stretches top map to match base map */
 }
 
 .overlay-controls .hint {
@@ -311,7 +312,7 @@ header p {
 
 .viewer-layout {
     display: flex;
-    height: 90vh;
+    height: calc(100vh - 120px); /* Fill remaining height after header */
     width: 100%;
     overflow: hidden;
     position: relative;
@@ -363,7 +364,7 @@ header p {
     display: flex;
     align-items: center;
     justify-content: center;
-    padding: 2rem;
+    padding: 0; /* Remove padding to fill screen */
     overflow: auto;
     position: relative;
     transition: all 0.4s ease;
