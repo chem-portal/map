@@ -221,7 +221,15 @@ async function updateViewer() {
 function updateTransform() {
     const data = savedMapsData[currentIndex];
     if (!data) return;
-    mainTop.style.transform = `translate(${data.posX}px, ${data.posY}px) rotate(${data.rotation || 0}deg) scale(${scaleXSlider.value}, ${scaleYSlider.value})`;
+    
+    // Smart Conversion: If data is in pixels ( > 10), convert to percentage on the fly
+    if (Math.abs(data.posX) > 5) data.posX = data.posX / (mainBase.clientWidth || 1200);
+    if (Math.abs(data.posY) > 5) data.posY = data.posY / (mainBase.clientHeight || 848);
+    
+    const x = data.posX * mainBase.clientWidth;
+    const y = data.posY * mainBase.clientHeight;
+    
+    mainTop.style.transform = `translate(${x}px, ${y}px) rotate(${data.rotation || 0}deg) scale(${scaleXSlider.value}, ${scaleYSlider.value})`;
 }
 
 function saveLocalData() {
@@ -434,8 +442,9 @@ window.nudgeScale = (axis, amount) => {
 window.nudgePos = (dx, dy) => {
     const data = savedMapsData[currentIndex];
     if (!data) return;
-    data.posX += dx;
-    data.posY += dy;
+    // Always work in percentages for stability
+    data.posX += (dx / mainBase.clientWidth);
+    data.posY += (dy / mainBase.clientHeight);
     updateTransform();
     saveLocalData();
 };
@@ -485,17 +494,22 @@ btnRotateCcw.addEventListener('mouseleave', stopRotation);
 let isDragging = false;
 let startX, startY;
 mainTop.addEventListener('mousedown', (e) => {
-    const data = savedMapsData[currentIndex];
     isDragging = true;
-    startX = e.clientX - data.posX;
-    startY = e.clientY - data.posY;
+    mainTop.style.cursor = 'grabbing';
+    const rect = mainTop.getBoundingClientRect();
+    startX = e.clientX - rect.left;
+    startY = e.clientY - rect.top;
     e.preventDefault();
 });
 window.addEventListener('mousemove', (e) => {
     if (!isDragging) return;
     const data = savedMapsData[currentIndex];
-    data.posX = e.clientX - startX;
-    data.posY = e.clientY - startY;
+    const bounds = mainBase.getBoundingClientRect();
+    
+    // Calculate and save as percentage of current map size
+    data.posX = (e.clientX - startX - bounds.left) / mainBase.clientWidth;
+    data.posY = (e.clientY - startY - bounds.top) / mainBase.clientHeight;
+    
     updateTransform();
 });
 window.addEventListener('mouseup', () => { 
