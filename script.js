@@ -208,18 +208,41 @@ function saveLocalData() {
 }
 
 // --- Admin Logic ---
+const loginModal = document.getElementById('login-modal');
+const loginPasswordInput = document.getElementById('login-password');
+const btnLoginCancel = document.getElementById('btn-login-cancel');
+const btnLoginSubmit = document.getElementById('btn-login-submit');
+
 btnLogin.addEventListener('click', () => {
-    const pass = prompt("Enter Admin Password:");
+    loginModal.classList.remove('hidden');
+    loginPasswordInput.value = '';
+    loginPasswordInput.focus();
+});
+
+btnLoginCancel.addEventListener('click', () => {
+    loginModal.classList.add('hidden');
+});
+
+btnLoginSubmit.addEventListener('click', () => {
+    const pass = loginPasswordInput.value;
     if (pass === "1520") {
         isAdmin = true;
         document.querySelectorAll('.admin-only').forEach(el => el.classList.remove('hidden'));
         btnLogin.textContent = "🔓 Admin Active";
         btnLogin.style.opacity = "1";
+        loginModal.classList.add('hidden');
         alert("Login Successful! You can now edit and save to cloud.");
     } else {
         alert("Incorrect Password.");
     }
 });
+
+loginPasswordInput.addEventListener('keypress', (e) => {
+    if (e.key === 'Enter') {
+        btnLoginSubmit.click();
+    }
+});
+
 
 async function saveToCloud() {
     if (!isAdmin) return;
