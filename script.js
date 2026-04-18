@@ -364,6 +364,92 @@ async function downloadSuperimposed(code, baseImg, topImg, alpha, posX, posY, sx
     }, 'image/png');
 }
 
+// --- Bulk Download ---
+document.getElementById('btn-download-all').addEventListener('click', async () => {
+    if (!savedMapsData || savedMapsData.length === 0) {
+        alert("No maps to download!");
+        return;
+    }
+
+    loader.classList.remove('hidden');
+    const progressText = document.getElementById('loader-progress');
+    const zip = new JSZip();
+
+    try {
+        for (let i = 0; i < savedMapsData.length; i++) {
+            progressText.textContent = `Processing map ${i + 1} of ${savedMapsData.length}...`;
+            const data = savedMapsData[i];
+
+            // Render PDF Base
+            const loadingTask = pdfjsLib.getDocument(data.pdfUrl);
+            const pdf = await loadingTask.promise;
+            const page = await pdf.getPage(1);
+            const viewport = page.getViewport({ scale: 2.5 });
+            const baseCanvas = document.createElement('canvas');
+            const baseCtx = baseCanvas.getContext('2d');
+            baseCanvas.width = viewport.width;
+            baseCanvas.height = viewport.height;
+            await page.render({ canvasContext: baseCtx, viewport: viewport }).promise;
+
+            // Load PNG Top
+            const topImg = new Image();
+            topImg.src = data.pngUrl;
+            await new Promise(resolve => topImg.onload = resolve);
+
+            // Create Final Output Canvas
+            const finalCanvas = document.createElement('canvas');
+            finalCanvas.width = baseCanvas.width;
+            finalCanvas.height = baseCanvas.height;
+            const finalCtx = finalCanvas.getContext('2d');
+            
+            // Draw Base
+            finalCtx.drawImage(baseCanvas, 0, 0);
+            
+            // Calculate ratio as if it was displayed on the screen (assuming standard screen width for math, or relative to natural width)
+            // Wait, in single download: displayWidth = mainBase.clientWidth. 
+            // The ratio was: baseImg.naturalWidth / displayWidth.
+            // Since we are rendering headless, we need to apply the exact same transform logic.
+            // The transform on screen was: translate(posX, posY) scale(scaleX, scaleY).
+            // This transform is relative to the *CSS display size* of the image (which fills the container).
+            // But on screen, object-fit: fill distorts the natural image.
+            // To perfectly replicate the screen, we must scale the headless canvas to match the screen's distortion.
+            // Let's assume standard container width is 1200x720 for calculations.
+            const screenW = 1200;
+            const screenH = 720;
+            const ratioX = baseCanvas.width / screenW;
+            const ratioY = baseCanvas.height / screenH;
+
+            finalCtx.save();
+            finalCtx.globalAlpha = data.alpha;
+            // Translate is in screen pixels, so scale by ratioX/Y
+            finalCtx.translate(data.posX * ratioX, data.posY * ratioY);
+            finalCtx.scale(data.scaleX, data.scaleY);
+            finalCtx.drawImage(topImg, 0, 0, baseCanvas.width, baseCanvas.height);
+            finalCtx.restore();
+
+            // Convert to blob and add to ZIP
+            const blob = await new Promise(resolve => finalCanvas.toBlob(resolve, 'image/png'));
+            zip.file(`Superimposed_${data.code}.png`, blob);
+        }
+
+        progressText.textContent = "Generating ZIP file...";
+        const zipBlob = await zip.generateAsync({ type: "blob" });
+        const url = URL.createObjectURL(zipBlob);
+        const link = document.createElement('a');
+        link.download = `Census_Maps.zip`;
+        link.href = url;
+        link.click();
+        setTimeout(() => URL.revokeObjectURL(url), 1000);
+
+    } catch (err) {
+        console.error("Bulk Download Error:", err);
+        alert("An error occurred during bulk download. Please check the console.");
+    } finally {
+        progressText.textContent = "";
+        loader.classList.add('hidden');
+    }
+});
+
 // --- Initial Setup Helper ---
 // If the user wants to add maps for the first time
 window.manualAdd = async (code) => {
