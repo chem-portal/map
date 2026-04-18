@@ -1,0 +1,140 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Superimpose Map System - Census 2027</title>
+    <link rel="stylesheet" href="style.css">
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/pdf.js/3.4.120/pdf.min.js"></script>
+    <link href="https://fonts.googleapis.com/css2?family=Outfit:wght@300;400;600&display=swap" rel="stylesheet">
+</head>
+<body>
+    <div class="container">
+        <header>
+            <h1>Superimpose Map System</h1>
+            <p>Align maps by dragging, resizing, and transparency</p>
+        </header>
+
+        <div class="controls glass">
+            <div class="folder-group">
+                <div class="folder-select">
+                    <button id="btn-bhunksha" class="btn primary small">📁 Bhunksha Folder</button>
+                    <div id="status-bhunksha" class="status">None</div>
+                </div>
+                <div class="folder-select">
+                    <button id="btn-pdf" class="btn secondary small">📄 PDF Folder</button>
+                    <div id="status-pdf" class="status">None</div>
+                </div>
+                <button id="btn-compare" class="btn action">Match & Start</button>
+                <button id="btn-download-all" class="btn primary">📥 Save All</button>
+            </div>
+        </div>
+
+        <div id="main-viewer" class="viewer-container glass hidden">
+            <div class="viewer-layout">
+                <div class="sidebar controls-panel">
+                    <button id="btn-toggle-tab" class="toggle-tab" title="Toggle Controls">◀</button>
+                    
+                    <div class="sidebar-nav-group">
+                        <button id="btn-prev" class="nav-btn small">⬅️</button>
+                        <button id="btn-next" class="nav-btn small">➡️</button>
+                        <button id="btn-fullscreen" class="nav-btn small" title="Toggle Fullscreen">🔳</button>
+                    </div>
+
+                    <div class="map-info-sidebar">
+                        <h3 id="current-code">Map ID: 0000</h3>
+                        <p id="current-filenames">Base: ... | Top: ...</p>
+                    </div>
+                    
+                    <hr>
+
+                    <!-- Admin Controls -->
+                    <div id="admin-controls" class="admin-only hidden">
+                        <div class="admin-badge" style="background: var(--action); color: white; padding: 0.2rem 0.5rem; border-radius: 4px; font-size: 0.7rem; text-align: center; margin-bottom: 0.5rem;">🔓 Admin Mode</div>
+                        <button id="btn-save-cloud" class="btn action small" style="width: 100%; margin-bottom: 0.5rem;">☁️ Save to Cloud</button>
+                        <button id="btn-replace-img" class="btn secondary small" style="width: 100%;">🔄 Replace Image</button>
+                        <input type="file" id="replace-file-input" class="hidden" accept="image/*">
+                        <hr>
+                    </div>
+                    
+                    <h3>Adjustment Controls</h3>
+                    
+                    <div class="control-group">
+                        <label>Transparency</label>
+                        <input type="range" id="global-alpha" min="0" max="1" step="0.05" value="1">
+                    </div>
+
+                    <div class="control-group">
+                        <label>Position Nudge (Precision)</label>
+                        <div class="pos-nudge-grid">
+                            <button class="nudge-btn" onclick="nudgePos(0, -1)">▲</button>
+                            <div class="nudge-mid">
+                                <button class="nudge-btn" onclick="nudgePos(-1, 0)">◀</button>
+                                <button class="nudge-btn" onclick="nudgePos(1, 0)">▶</button>
+                            </div>
+                            <button class="nudge-btn" onclick="nudgePos(0, 1)">▼</button>
+                        </div>
+                    </div>
+
+                    <div class="control-group">
+                        <label>Width Resize (↔️)</label>
+                        <div class="precision-row">
+                            <button class="nudge-btn" onclick="nudgeScale('x', -0.001)">➖</button>
+                            <input type="range" id="scale-x" min="0.1" max="5" step="0.001" value="1">
+                            <button class="nudge-btn" onclick="nudgeScale('x', 0.001)">➕</button>
+                        </div>
+                    </div>
+
+                    <div class="control-group">
+                        <label>Height Resize (↕️)</label>
+                        <div class="precision-row">
+                            <button class="nudge-btn" onclick="nudgeScale('y', -0.001)">➖</button>
+                            <input type="range" id="scale-y" min="0.1" max="5" step="0.001" value="1">
+                            <button class="nudge-btn" onclick="nudgeScale('y', 0.001)">➕</button>
+                        </div>
+                    </div>
+
+                    <div class="control-group">
+                        <label>Replace Map Image</label>
+                        <button id="btn-replace-img" class="btn secondary small">🔄 Replace Image</button>
+                        <input type="file" id="replace-file-input" hidden accept="image/*">
+                    </div>
+
+                    <div class="control-hint">
+                        🖱️ Drag map on the right to align
+                    </div>
+
+                    <div class="action-group">
+                        <button id="btn-download-single" class="btn action">Download Current</button>
+                        <button id="btn-delete-current" class="btn secondary admin-only hidden" style="background: #ef4444;">Delete Current</button>
+                        <button id="btn-login" class="btn secondary" style="opacity: 0.5; margin-top: 1rem; width: 100%;">🔐 Admin Login</button>
+                    </div>
+                </div>
+
+                <div class="workspace">
+                    <div id="overlay-workspace" class="overlay-container big-view">
+                        <img id="main-base" class="overlay-base">
+                        <img id="main-top" class="overlay-top">
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <div id="empty-state" class="glass" style="text-align:center; padding: 5rem;">
+            <h2>No maps loaded</h2>
+            <p>Select your Bhunksha and PDF folders above to start aligning.</p>
+        </div>
+    </div>
+
+    <div id="loader" class="loader-overlay hidden">
+        <div class="loader"></div>
+        <p id="loader-text">Processing maps...</p>
+        <p id="loader-progress" style="color: var(--action); font-weight: 600; margin-top: 0.5rem;"></p>
+    </div>
+
+    <script src="script.js"></script>
+    <script>
+        window.currentView = 'overlay';
+    </script>
+</body>
+</html>
