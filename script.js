@@ -25,6 +25,74 @@ const btnFullscreen = document.getElementById('btn-fullscreen');
 const btnLogin = document.getElementById('btn-login');
 const btnSaveCloud = document.getElementById('btn-save-cloud');
 
+// --- Local Storage & Folders ---
+let localBhunkshaFiles = {};
+let localPdfFiles = {};
+
+document.getElementById('btn-bhunksha').addEventListener('click', () => document.getElementById('input-bhunksha').click());
+document.getElementById('btn-pdf').addEventListener('click', () => document.getElementById('input-pdf').click());
+
+let alertShown = false;
+
+document.getElementById('input-bhunksha').addEventListener('change', (e) => {
+    if(!alertShown) { alert("Please ensure Image names match PDF names exactly (e.g. 0001.png and 0001.pdf) and are in separate folders."); alertShown = true; }
+    const files = e.target.files;
+    document.getElementById('status-bhunksha').textContent = `${files.length} files`;
+    for(let f of files) {
+        if(f.name.toLowerCase().endsWith('.png') || f.name.toLowerCase().endsWith('.jpg')) {
+            let code = f.name.split('.')[0];
+            localBhunkshaFiles[code] = f;
+        }
+    }
+    checkAndStartLocal();
+});
+
+document.getElementById('input-pdf').addEventListener('change', (e) => {
+    if(!alertShown) { alert("Please ensure Image names match PDF names exactly (e.g. 0001.png and 0001.pdf) and are in separate folders."); alertShown = true; }
+    const files = e.target.files;
+    document.getElementById('status-pdf').textContent = `${files.length} files`;
+    for(let f of files) {
+        if(f.name.toLowerCase().endsWith('.pdf')) {
+            let code = f.name.split('.')[0];
+            localPdfFiles[code] = f;
+        }
+    }
+    checkAndStartLocal();
+});
+
+function checkAndStartLocal() {
+    if(Object.keys(localBhunkshaFiles).length > 0 && Object.keys(localPdfFiles).length > 0) {
+        let matchedData = [];
+        let localDataStore = JSON.parse(localStorage.getItem('censusLocalMaps')) || {};
+
+        for(let code in localBhunkshaFiles) {
+            if(localPdfFiles[code]) {
+                let localSaved = localDataStore[code] || {};
+                matchedData.push({
+                    code: code,
+                    posX: localSaved.posX || 0,
+                    posY: localSaved.posY || 0,
+                    scaleX: localSaved.scaleX || 1,
+                    scaleY: localSaved.scaleY || 1,
+                    alpha: localSaved.alpha !== undefined ? localSaved.alpha : 1,
+                    pdfUrl: URL.createObjectURL(localPdfFiles[code]),
+                    pngUrl: URL.createObjectURL(localBhunkshaFiles[code]),
+                    isLocal: true
+                });
+            }
+        }
+
+        if(matchedData.length > 0) {
+            matchedData.sort((a,b) => a.code.localeCompare(b.code));
+            savedMapsData = matchedData;
+            currentIndex = 0;
+            showViewer();
+        } else {
+            alert("No matching files found. Ensure names match (e.g. 0001.png and 0001.pdf).");
+        }
+    }
+}
+
 // --- Initialization ---
 window.addEventListener('load', async () => {
     await loadFromCloud();
@@ -119,6 +187,26 @@ function updateTransform() {
     mainTop.style.transform = `translate(${data.posX}px, ${data.posY}px) scale(${scaleXSlider.value}, ${scaleYSlider.value})`;
 }
 
+function saveLocalData() {
+    if(isAdmin) return; // Admins save to cloud
+    const data = savedMapsData[currentIndex];
+    if(!data) return;
+    
+    data.alpha = parseFloat(alphaSlider.value);
+    data.scaleX = parseFloat(scaleXSlider.value);
+    data.scaleY = parseFloat(scaleYSlider.value);
+    
+    let localDataStore = JSON.parse(localStorage.getItem('censusLocalMaps')) || {};
+    localDataStore[data.code] = {
+        posX: data.posX,
+        posY: data.posY,
+        scaleX: data.scaleX,
+        scaleY: data.scaleY,
+        alpha: data.alpha
+    };
+    localStorage.setItem('censusLocalMaps', JSON.stringify(localDataStore));
+}
+
 // --- Admin Logic ---
 btnLogin.addEventListener('click', () => {
     const pass = prompt("Enter Admin Password:");
@@ -180,6 +268,7 @@ window.nudgeScale = (axis, amount) => {
     const slider = axis === 'x' ? scaleXSlider : scaleYSlider;
     slider.value = parseFloat(slider.value) + amount;
     updateTransform();
+    saveLocalData();
 };
 
 window.nudgePos = (dx, dy) => {
@@ -188,11 +277,15 @@ window.nudgePos = (dx, dy) => {
     data.posX += dx;
     data.posY += dy;
     updateTransform();
+    saveLocalData();
 };
 
 // --- Sliders ---
+alphaSlider.addEventListener('change', () => { mainTop.style.opacity = alphaSlider.value; saveLocalData(); });
 alphaSlider.addEventListener('input', () => { mainTop.style.opacity = alphaSlider.value; });
+scaleXSlider.addEventListener('change', () => { updateTransform(); saveLocalData(); });
 scaleXSlider.addEventListener('input', updateTransform);
+scaleYSlider.addEventListener('change', () => { updateTransform(); saveLocalData(); });
 scaleYSlider.addEventListener('input', updateTransform);
 
 // --- Dragging ---
@@ -212,7 +305,12 @@ window.addEventListener('mousemove', (e) => {
     data.posY = e.clientY - startY;
     updateTransform();
 });
-window.addEventListener('mouseup', () => { isDragging = false; });
+window.addEventListener('mouseup', () => { 
+    if(isDragging) {
+        isDragging = false; 
+        saveLocalData();
+    }
+});
 
 // --- Download ---
 document.getElementById('btn-download-single').addEventListener('click', () => {
