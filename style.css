@@ -240,7 +240,7 @@ header p {
     width: 100%;
     height: 100%;
     display: block;
-    object-fit: contain; /* Prevents distortion, keeps maps in sync */
+    object-fit: fill; /* Stretches PDF to fill the landscape width, removing empty space */
 }
 
 .overlay-top {
@@ -254,7 +254,7 @@ header p {
     cursor: move;
     transform-origin: top left;
     transition: opacity 0.2s ease;
-    object-fit: contain; /* Matches base map scaling perfectly */
+    object-fit: fill; /* Stretches to match base map perfectly */
 }
 
 .overlay-controls .hint {
