@@ -311,8 +311,7 @@ header p {
 
 .viewer-layout {
     display: flex;
-    height: 85vh;
-    max-height: calc(100vh - 150px);
+    height: 90vh;
     width: 100%;
     overflow: hidden;
     position: relative;
@@ -487,7 +486,7 @@ hr {
 
 .big-view {
     width: 100%;
-    max-width: 1200px;
+    max-width: 100%;
     box-shadow: 0 0 50px rgba(0,0,0,0.5);
     height: auto;
 }

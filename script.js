@@ -88,7 +88,7 @@ async function updateViewer() {
         const page = await pdf.getPage(1);
         
         // Use a consistent scale for high quality
-        const viewport = page.getViewport({ scale: 2.0 });
+        const viewport = page.getViewport({ scale: 2.5 });
         const canvas = document.createElement('canvas');
         const context = canvas.getContext('2d');
         canvas.height = viewport.height;
