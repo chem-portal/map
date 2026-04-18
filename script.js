@@ -222,9 +222,9 @@ function updateTransform() {
     const data = savedMapsData[currentIndex];
     if (!data) return;
     
-    // Smart Conversion: If data is in pixels ( > 10), convert to percentage on the fly
-    if (Math.abs(data.posX) > 5) data.posX = data.posX / (mainBase.clientWidth || 1200);
-    if (Math.abs(data.posY) > 5) data.posY = data.posY / (mainBase.clientHeight || 848);
+    // Auto-Convert legacy pixels to normalized percentage (0 to 1)
+    if (Math.abs(data.posX) > 5) data.posX /= (mainBase.clientWidth || 1200);
+    if (Math.abs(data.posY) > 5) data.posY /= (mainBase.clientHeight || 848);
     
     const x = data.posX * mainBase.clientWidth;
     const y = data.posY * mainBase.clientHeight;
@@ -442,7 +442,7 @@ window.nudgeScale = (axis, amount) => {
 window.nudgePos = (dx, dy) => {
     const data = savedMapsData[currentIndex];
     if (!data) return;
-    // Always work in percentages for stability
+    // Nudge relative to current size
     data.posX += (dx / mainBase.clientWidth);
     data.posY += (dy / mainBase.clientHeight);
     updateTransform();
@@ -497,6 +497,7 @@ mainTop.addEventListener('mousedown', (e) => {
     isDragging = true;
     mainTop.style.cursor = 'grabbing';
     const rect = mainTop.getBoundingClientRect();
+    // Offset relative to the image itself
     startX = e.clientX - rect.left;
     startY = e.clientY - rect.top;
     e.preventDefault();
@@ -506,7 +507,7 @@ window.addEventListener('mousemove', (e) => {
     const data = savedMapsData[currentIndex];
     const bounds = mainBase.getBoundingClientRect();
     
-    // Calculate and save as percentage of current map size
+    // Normalized Coordinates (0 to 1)
     data.posX = (e.clientX - startX - bounds.left) / mainBase.clientWidth;
     data.posY = (e.clientY - startY - bounds.top) / mainBase.clientHeight;
     
@@ -529,28 +530,25 @@ async function downloadSuperimposed(code, baseImg, topImg, alpha, posX, posY, sx
     const outputCanvas = document.createElement('canvas');
     const ctx = outputCanvas.getContext('2d');
     
-    // Set to A4 Landscape Resolution (approx 150-200 DPI for A4)
     outputCanvas.width = 2000; 
     outputCanvas.height = 1414;
 
-    // Fill white background
     ctx.fillStyle = "white";
     ctx.fillRect(0, 0, outputCanvas.width, outputCanvas.height);
 
-    // Get actual container dimensions for accurate ratio mapping
-    // Use actual image display dimensions for perfect ratio mapping
-    const displayWidth = mainBase.clientWidth || 1200;
-    const displayHeight = mainBase.clientHeight || 848;
-    
-    const ratioX = outputCanvas.width / displayWidth;
-    const ratioY = outputCanvas.height / displayHeight;
-
-    // Draw base (PDF render) stretched to fill A4 area
+    // Draw base
     ctx.drawImage(baseImg, 0, 0, outputCanvas.width, outputCanvas.height);
 
     ctx.save();
     ctx.globalAlpha = alpha;
-    ctx.translate(posX * ratioX, posY * ratioY);
+    
+    // Use normalized coordinates for perfect 2000x1414 mapping
+    let px = posX;
+    let py = posY;
+    if (Math.abs(px) > 5) px /= (mainBase.clientWidth || 1200);
+    if (Math.abs(py) > 5) py /= (mainBase.clientHeight || 848);
+
+    ctx.translate(px * 2000, py * 1414);
     
     const data = savedMapsData[currentIndex];
     if (data && data.rotation) {
@@ -558,8 +556,6 @@ async function downloadSuperimposed(code, baseImg, topImg, alpha, posX, posY, sx
     }
     
     ctx.scale(sx, sy);
-    
-    // Apply Multiply blend mode to match viewer
     ctx.globalCompositeOperation = 'multiply';
     ctx.drawImage(topImg, 0, 0, outputCanvas.width, outputCanvas.height);
     ctx.restore();
@@ -645,12 +641,12 @@ async function processMapZip(mapsToDownload, zipFilename) {
             finalCtx.save();
             finalCtx.globalAlpha = data.alpha;
             
-            // Smart conversion for batch data
+            // Map Normalized Coordinates (0-1) to Export (2000x1414)
             let px = data.posX;
             let py = data.posY;
-            if (Math.abs(px) > 5) px /= 1200; // Fallback for old pixel data
+            if (Math.abs(px) > 5) px /= 1200; // Fallback
             if (Math.abs(py) > 5) py /= 848;
-            
+
             finalCtx.translate(px * 2000, py * 1414);
             
             if (data.rotation) {
