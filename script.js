@@ -571,8 +571,7 @@ async function processMapZip(mapsToDownload, zipFilename) {
     const progressText = document.getElementById('loader-progress');
     const zip = new JSZip();
 
-    // Capture current workspace dimensions for consistent ratios
-    // Use fixed reference dimensions to prevent sidebar drift
+    // Fix display reference to 1200px to prevent sidebar drift
     const screenW = 1200;
     const screenH = 848;
 
