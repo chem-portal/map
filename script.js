@@ -400,23 +400,40 @@ document.getElementById('btn-download-single').addEventListener('click', () => {
 async function downloadSuperimposed(code, baseImg, topImg, alpha, posX, posY, sx, sy) {
     const outputCanvas = document.createElement('canvas');
     const ctx = outputCanvas.getContext('2d');
-    outputCanvas.width = baseImg.naturalWidth; outputCanvas.height = baseImg.naturalHeight;
+    outputCanvas.width = baseImg.naturalWidth; 
+    outputCanvas.height = baseImg.naturalHeight;
+
+    // Fill white background
+    ctx.fillStyle = "white";
+    ctx.fillRect(0, 0, outputCanvas.width, outputCanvas.height);
+
+    // Draw base (PDF render)
     ctx.drawImage(baseImg, 0, 0);
-    const displayWidth = baseImg.clientWidth;
-    const ratio = baseImg.naturalWidth / displayWidth;
+
+    // Get actual container dimensions for accurate ratio
+    const workspace = document.getElementById('overlay-workspace');
+    const displayWidth = workspace.clientWidth || 1200;
+    const displayHeight = workspace.clientHeight || 720;
+    
+    const ratioX = outputCanvas.width / displayWidth;
+    const ratioY = outputCanvas.height / displayHeight;
+
     ctx.save();
     ctx.globalAlpha = alpha;
-    ctx.translate(posX * ratio, posY * ratio);
+    ctx.translate(posX * ratioX, posY * ratioY);
     
-    // Apply rotation
     const data = savedMapsData[currentIndex];
     if (data && data.rotation) {
         ctx.rotate(data.rotation * Math.PI / 180);
     }
     
     ctx.scale(sx, sy);
-    ctx.drawImage(topImg, 0, 0, baseImg.naturalWidth, baseImg.naturalHeight);
+    
+    // Apply Multiply blend mode to match viewer
+    ctx.globalCompositeOperation = 'multiply';
+    ctx.drawImage(topImg, 0, 0, outputCanvas.width, outputCanvas.height);
     ctx.restore();
+
     outputCanvas.toBlob((blob) => {
         const url = URL.createObjectURL(blob);
         const link = document.createElement('a');
@@ -438,26 +455,50 @@ async function processMapZip(mapsToDownload, zipFilename) {
     const progressText = document.getElementById('loader-progress');
     const zip = new JSZip();
 
+    // Capture current workspace dimensions for consistent ratios
+    const workspace = document.getElementById('overlay-workspace');
+    const screenW = workspace.clientWidth || 1200;
+    const screenH = workspace.clientHeight || 720;
+
     try {
         for (let i = 0; i < mapsToDownload.length; i++) {
             progressText.textContent = `Processing map ${i + 1} of ${mapsToDownload.length}...`;
             const data = mapsToDownload[i];
 
             // Render PDF Base
-            const loadingTask = pdfjsLib.getDocument(data.pdfUrl);
-            const pdf = await loadingTask.promise;
-            const page = await pdf.getPage(1);
-            const viewport = page.getViewport({ scale: 1.5 }); // Reduced from 2.5 for speed
-            const baseCanvas = document.createElement('canvas');
-            const baseCtx = baseCanvas.getContext('2d');
-            baseCanvas.width = viewport.width;
-            baseCanvas.height = viewport.height;
-            await page.render({ canvasContext: baseCtx, viewport: viewport }).promise;
+            let baseCanvas;
+            try {
+                const loadingTask = pdfjsLib.getDocument(data.pdfUrl);
+                const pdf = await loadingTask.promise;
+                const page = await pdf.getPage(1);
+                const viewport = page.getViewport({ scale: 1.5 });
+                baseCanvas = document.createElement('canvas');
+                const baseCtx = baseCanvas.getContext('2d');
+                baseCanvas.width = viewport.width;
+                baseCanvas.height = viewport.height;
+                
+                // Fill white background for PDF
+                baseCtx.fillStyle = "white";
+                baseCtx.fillRect(0, 0, baseCanvas.width, baseCanvas.height);
+                
+                await page.render({ canvasContext: baseCtx, viewport: viewport }).promise;
+            } catch (err) {
+                console.error(`PDF Render fail for ${data.code}:`, err);
+                // Create blank fallback
+                baseCanvas = document.createElement('canvas');
+                baseCanvas.width = 1200; baseCanvas.height = 720;
+                const baseCtx = baseCanvas.getContext('2d');
+                baseCtx.fillStyle = "white";
+                baseCtx.fillRect(0, 0, 1200, 720);
+            }
 
             // Load PNG Top
             const topImg = new Image();
             topImg.src = data.pngUrl;
-            await new Promise(resolve => topImg.onload = resolve);
+            await new Promise(resolve => {
+                topImg.onload = resolve;
+                topImg.onerror = resolve; // Continue even if top image fails
+            });
 
             // Create Final Output Canvas
             const finalCanvas = document.createElement('canvas');
@@ -468,23 +509,11 @@ async function processMapZip(mapsToDownload, zipFilename) {
             // Draw Base
             finalCtx.drawImage(baseCanvas, 0, 0);
             
-            // Calculate ratio as if it was displayed on the screen (assuming standard screen width for math, or relative to natural width)
-            // Wait, in single download: displayWidth = mainBase.clientWidth. 
-            // The ratio was: baseImg.naturalWidth / displayWidth.
-            // Since we are rendering headless, we need to apply the exact same transform logic.
-            // The transform on screen was: translate(posX, posY) scale(scaleX, scaleY).
-            // This transform is relative to the *CSS display size* of the image (which fills the container).
-            // But on screen, object-fit: fill distorts the natural image.
-            // To perfectly replicate the screen, we must scale the headless canvas to match the screen's distortion.
-            // Let's assume standard container width is 1200x720 for calculations.
-            const screenW = 1200;
-            const screenH = 720;
             const ratioX = baseCanvas.width / screenW;
             const ratioY = baseCanvas.height / screenH;
 
             finalCtx.save();
             finalCtx.globalAlpha = data.alpha;
-            // Translate is in screen pixels, so scale by ratioX/Y
             finalCtx.translate(data.posX * ratioX, data.posY * ratioY);
             
             if (data.rotation) {
@@ -492,10 +521,12 @@ async function processMapZip(mapsToDownload, zipFilename) {
             }
             
             finalCtx.scale(data.scaleX, data.scaleY);
+            
+            // Apply Multiply blend mode to match viewer
+            finalCtx.globalCompositeOperation = 'multiply';
             finalCtx.drawImage(topImg, 0, 0, baseCanvas.width, baseCanvas.height);
             finalCtx.restore();
 
-            // Convert to blob and add to ZIP
             const blob = await new Promise(resolve => finalCanvas.toBlob(resolve, 'image/png'));
             zip.file(`Superimposed_${data.code}.png`, blob);
         }
