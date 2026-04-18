@@ -74,6 +74,7 @@ function checkAndStartLocal() {
                     posY: localSaved.posY || 0,
                     scaleX: localSaved.scaleX === 1 ? 1.35 : (localSaved.scaleX || 1.35),
                     scaleY: localSaved.scaleY || 1,
+                    rotation: localSaved.rotation || 0,
                     alpha: localSaved.alpha !== undefined ? localSaved.alpha : 1,
                     pdfUrl: URL.createObjectURL(localPdfFiles[code]),
                     pngUrl: URL.createObjectURL(localBhunkshaFiles[code]),
@@ -117,6 +118,7 @@ async function loadFromCloud() {
                 posY: parseFloat(item.posY) || 0,
                 scaleX: parseFloat(item.scaleX) === 1 ? 1.35 : (parseFloat(item.scaleX) || 1.35),
                 scaleY: parseFloat(item.scaleY) || 1,
+                rotation: parseFloat(item.rotation) || 0,
                 alpha: parseFloat(item.alpha) || 1,
                 // Files are expected to be in relative folders on GitHub
                 pdfUrl: `./pdf/${item.code.toString().padStart(4, '0')}.pdf`, 
@@ -184,7 +186,7 @@ async function updateViewer() {
 function updateTransform() {
     const data = savedMapsData[currentIndex];
     if (!data) return;
-    mainTop.style.transform = `translate(${data.posX}px, ${data.posY}px) scale(${scaleXSlider.value}, ${scaleYSlider.value})`;
+    mainTop.style.transform = `translate(${data.posX}px, ${data.posY}px) rotate(${data.rotation || 0}deg) scale(${scaleXSlider.value}, ${scaleYSlider.value})`;
 }
 
 function saveLocalData() {
@@ -202,6 +204,7 @@ function saveLocalData() {
         posY: data.posY,
         scaleX: data.scaleX,
         scaleY: data.scaleY,
+        rotation: data.rotation || 0,
         alpha: data.alpha
     };
     localStorage.setItem('censusLocalMaps', JSON.stringify(localDataStore));
@@ -250,6 +253,7 @@ async function saveToCloud() {
     data.alpha = parseFloat(alphaSlider.value);
     data.scaleX = parseFloat(scaleXSlider.value);
     data.scaleY = parseFloat(scaleYSlider.value);
+    data.rotation = data.rotation || 0;
 
     btnSaveCloud.textContent = "⌛ Saving...";
     btnSaveCloud.disabled = true;
@@ -330,6 +334,39 @@ scaleXSlider.addEventListener('input', updateTransform);
 scaleYSlider.addEventListener('change', () => { updateTransform(); saveLocalData(); });
 scaleYSlider.addEventListener('input', updateTransform);
 
+// --- Rotation ---
+let rotateInterval;
+function handleRotation(dir) {
+    const data = savedMapsData[currentIndex];
+    if (!data) return;
+    if (data.rotation === undefined) data.rotation = 0;
+    
+    data.rotation += dir * 0.2; // Small nudge
+    updateTransform();
+}
+function startRotation(dir) {
+    handleRotation(dir);
+    // Continuous rotation
+    rotateInterval = setInterval(() => {
+        handleRotation(dir);
+    }, 30);
+}
+function stopRotation() {
+    clearInterval(rotateInterval);
+    saveLocalData();
+}
+
+const btnRotateCw = document.getElementById('btn-rotate-cw');
+const btnRotateCcw = document.getElementById('btn-rotate-ccw');
+
+btnRotateCw.addEventListener('mousedown', () => startRotation(1));
+btnRotateCw.addEventListener('mouseup', stopRotation);
+btnRotateCw.addEventListener('mouseleave', stopRotation);
+
+btnRotateCcw.addEventListener('mousedown', () => startRotation(-1));
+btnRotateCcw.addEventListener('mouseup', stopRotation);
+btnRotateCcw.addEventListener('mouseleave', stopRotation);
+
 // --- Dragging ---
 let isDragging = false;
 let startX, startY;
@@ -370,6 +407,13 @@ async function downloadSuperimposed(code, baseImg, topImg, alpha, posX, posY, sx
     ctx.save();
     ctx.globalAlpha = alpha;
     ctx.translate(posX * ratio, posY * ratio);
+    
+    // Apply rotation
+    const data = savedMapsData[currentIndex];
+    if (data && data.rotation) {
+        ctx.rotate(data.rotation * Math.PI / 180);
+    }
+    
     ctx.scale(sx, sy);
     ctx.drawImage(topImg, 0, 0, baseImg.naturalWidth, baseImg.naturalHeight);
     ctx.restore();
@@ -442,6 +486,11 @@ document.getElementById('btn-download-all').addEventListener('click', async () =
             finalCtx.globalAlpha = data.alpha;
             // Translate is in screen pixels, so scale by ratioX/Y
             finalCtx.translate(data.posX * ratioX, data.posY * ratioY);
+            
+            if (data.rotation) {
+                finalCtx.rotate(data.rotation * Math.PI / 180);
+            }
+            
             finalCtx.scale(data.scaleX, data.scaleY);
             finalCtx.drawImage(topImg, 0, 0, baseCanvas.width, baseCanvas.height);
             finalCtx.restore();
