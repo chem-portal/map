@@ -40,7 +40,7 @@ document.getElementById('input-bhunksha').addEventListener('change', (e) => {
     document.getElementById('status-bhunksha').textContent = `${files.length} files`;
     for(let f of files) {
         if(f.name.toLowerCase().endsWith('.png') || f.name.toLowerCase().endsWith('.jpg')) {
-            let code = f.name.split('.')[0];
+            let code = f.name.split('.')[0].padStart(4, '0');
             localBhunkshaFiles[code] = f;
         }
     }
@@ -53,7 +53,7 @@ document.getElementById('input-pdf').addEventListener('change', (e) => {
     document.getElementById('status-pdf').textContent = `${files.length} files`;
     for(let f of files) {
         if(f.name.toLowerCase().endsWith('.pdf')) {
-            let code = f.name.split('.')[0];
+            let code = f.name.split('.')[0].padStart(4, '0');
             localPdfFiles[code] = f;
         }
     }
