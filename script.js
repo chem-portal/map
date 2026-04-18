@@ -125,7 +125,7 @@ async function loadFromCloud() {
     loader.classList.remove('hidden');
     document.getElementById('loader-text').textContent = "Syncing with Cloud...";
     try {
-        const response = await fetch(CLOUD_API_URL);
+        const response = await fetch(CLOUD_API_URL + "?_t=" + Date.now());
         const cloudData = await response.json();
         
         if (cloudData.length > 0) {
