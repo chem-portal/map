@@ -293,20 +293,13 @@ async function saveToCloud() {
     btnSaveCloud.textContent = "⌛ Saving...";
     btnSaveCloud.disabled = true;
 
-    // Use URLSearchParams for better Google Apps Script compatibility
-    const params = new URLSearchParams();
-    for (const key in data) {
-        if (key.includes('Url')) continue; // Don't sync temporary blob URLs
-        params.append(key, data[key]);
-    }
-
     try {
         await fetch(CLOUD_API_URL, {
             method: 'POST',
             mode: 'no-cors',
-            body: params
+            body: JSON.stringify(data)
         });
-        alert(`Map ${data.code} save request sent to cloud!`);
+        alert(`Cloud Save Sent!\nMap: ${data.code}\nPos: ${data.posX.toFixed(1)}, ${data.posY.toFixed(1)}\nScale: ${data.scaleX.toFixed(3)}, ${data.scaleY.toFixed(3)}`);
         cloudDataLookup[data.code] = {...data};
     } catch (err) {
         console.error("Cloud save error:", err);
@@ -328,15 +321,10 @@ async function saveAllToCloud() {
     try {
         for (let i = 0; i < savedMapsData.length; i++) {
             const data = savedMapsData[i];
-            const params = new URLSearchParams();
-            for (const key in data) {
-                if (key.includes('Url')) continue;
-                params.append(key, data[key]);
-            }
             await fetch(CLOUD_API_URL, {
                 method: 'POST',
                 mode: 'no-cors',
-                body: params
+                body: JSON.stringify(data)
             });
         }
         alert("Bulk sync complete! All changes pushed to cloud.");
@@ -385,6 +373,17 @@ document.getElementById('btn-import-json').addEventListener('click', () => {
         reader.readAsText(file);
     };
     input.click();
+});
+
+document.getElementById('btn-debug-cloud').addEventListener('click', async () => {
+    try {
+        const response = await fetch(CLOUD_API_URL + "?_t=" + Date.now());
+        const raw = await response.text();
+        console.log("Raw Cloud JSON:", raw);
+        alert("Latest Cloud Data fetched! Check Browser Console (F12) for full details.\n\nSummary: " + raw.substring(0, 150) + "...");
+    } catch (err) {
+        alert("Debug fetch failed: " + err.message);
+    }
 });
 
 btnSaveCloud.addEventListener('click', saveToCloud);
