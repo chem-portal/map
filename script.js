@@ -1,4 +1,4 @@
-const pdfjsLib = window['pdfjs-dist/build/pdf'];
+const pdfjsLib = window.pdfjsLib;
 pdfjsLib.GlobalWorkerOptions.workerSrc = 'https://cdnjs.cloudflare.com/ajax/libs/pdf.js/3.4.120/pdf.worker.min.js';
 
 // --- CLOUD CONFIG ---
@@ -28,8 +28,12 @@ const btnSaveCloud = document.getElementById('btn-save-cloud');
 // --- Initialization ---
 window.addEventListener('load', async () => {
     await loadFromCloud();
-    checkReady();
 });
+
+function checkReady() {
+    // Helper to ensure components are ready if needed
+    console.log("System Ready");
+}
 
 async function loadFromCloud() {
     loader.classList.remove('hidden');
@@ -74,9 +78,33 @@ async function updateViewer() {
     currentCodeEl.textContent = `Map ID: ${data.code}`;
     currentFilesEl.textContent = `File: ${data.code}`;
     
-    mainBase.src = data.pdfUrl;
-    mainTop.src = data.pngUrl;
+    loader.classList.remove('hidden');
+    document.getElementById('loader-text').textContent = "Rendering PDF Base...";
+
+    try {
+        // Load PDF using PDF.js
+        const loadingTask = pdfjsLib.getDocument(data.pdfUrl);
+        const pdf = await loadingTask.promise;
+        const page = await pdf.getPage(1);
+        
+        // Use a consistent scale for high quality
+        const viewport = page.getViewport({ scale: 2.0 });
+        const canvas = document.createElement('canvas');
+        const context = canvas.getContext('2d');
+        canvas.height = viewport.height;
+        canvas.width = viewport.width;
+
+        await page.render({ canvasContext: context, viewport: viewport }).promise;
+        mainBase.src = canvas.toDataURL('image/png');
+    } catch (err) {
+        console.error("PDF Render Error:", err);
+        // Fallback to direct src if it's an image or if rendering fails
+        mainBase.src = data.pdfUrl;
+    }
     
+    mainTop.src = data.pngUrl;
+    loader.classList.add('hidden');
+
     alphaSlider.value = data.alpha;
     scaleXSlider.value = data.scaleX;
     scaleYSlider.value = data.scaleY;

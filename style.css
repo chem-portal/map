@@ -310,61 +310,26 @@ header p {
 
 .viewer-layout {
     display: flex;
-    height: 85vh; /* Increased default height */
+    height: 80vh;
+    width: 100%;
     overflow: hidden;
     position: relative;
     background: #000;
 }
 
-.nav-btn:hover {
-    background: var(--primary);
-    transform: scale(1.1);
-}
-
-.nav-btn {
-    background: var(--surface);
-    border: 1px solid var(--border);
-    color: white;
-    font-size: 1.5rem;
-    width: 50px;
-    height: 50px;
-    border-radius: 50%;
-    cursor: pointer;
-    transition: all 0.3s ease;
-    display: flex;
-    align-items: center;
-    justify-content: center;
-}
-
-.nav-btn:hover {
-    background: var(--primary);
-    transform: scale(1.1);
-}
-
-.nav-btn.small {
-    width: 40px;
-    height: 40px;
-    font-size: 1.2rem;
-}
-
-.viewer-layout {
-    display: flex;
-    height: 700px;
-    overflow: hidden;
-    position: relative;
-}
-
 .controls-panel {
-    background: var(--sidebar);
-    padding: 2rem;
-    border-right: 1px solid var(--border);
+    background: var(--card-bg);
+    padding: 1.5rem;
+    border-right: 1px solid rgba(255, 255, 255, 0.1);
     display: flex;
     flex-direction: column;
-    gap: 1.5rem;
+    gap: 1rem;
     width: 320px;
     flex-shrink: 0;
     transition: margin-left 0.4s cubic-bezier(0.4, 0, 0.2, 1);
     position: relative;
+    z-index: 20;
+    backdrop-filter: blur(10px);
 }
 
 .toggle-tab {
@@ -374,8 +339,8 @@ header p {
     transform: translateY(-50%);
     width: 30px;
     height: 60px;
-    background: var(--sidebar);
-    border: 1px solid var(--border);
+    background: var(--card-bg);
+    border: 1px solid rgba(255, 255, 255, 0.1);
     border-left: none;
     border-radius: 0 8px 8px 0;
     color: white;
@@ -384,30 +349,27 @@ header p {
     align-items: center;
     justify-content: center;
     z-index: 10;
-}
-
-.viewer-container.controls-hidden .toggle-tab {
-    content: "▶";
+    backdrop-filter: blur(10px);
 }
 
 .viewer-container.controls-hidden .controls-panel {
     margin-left: -320px;
 }
 
-.viewer-container.controls-hidden .workspace {
-    width: 100%;
-}
-
 .workspace {
     background: #000;
     flex-grow: 1;
     display: flex;
-    align-items: flex-start; /* Start from top, don't center vertically */
+    align-items: center;
     justify-content: center;
-    padding: 6rem 2rem 2rem 2rem; /* Even more top padding */
+    padding: 2rem;
     overflow: auto;
     position: relative;
     transition: all 0.4s ease;
+}
+
+.viewer-container.controls-hidden .workspace {
+    width: 100%;
 }
 
 .viewer-container.is-fullscreen {
@@ -419,7 +381,7 @@ header p {
     z-index: 1000;
     margin: 0;
     border-radius: 0;
-    padding: 0; /* No padding in fullscreen */
+    padding: 0;
     border: none;
 }
 
@@ -427,27 +389,23 @@ header p {
     height: 100vh;
 }
 
-.viewer-layout {
+.nav-btn {
+    background: rgba(255, 255, 255, 0.1);
+    border: 1px solid rgba(255, 255, 255, 0.1);
+    color: white;
+    width: 40px;
+    height: 40px;
+    border-radius: 50%;
+    cursor: pointer;
+    transition: all 0.3s ease;
     display: flex;
-    height: 800px;
-    width: 100%;
-    overflow: hidden;
-    position: relative;
-    background: #000;
+    align-items: center;
+    justify-content: center;
 }
 
-.controls-panel {
-    background: var(--sidebar);
-    padding: 1.5rem;
-    border-right: 1px solid var(--border);
-    display: flex;
-    flex-direction: column;
-    gap: 1rem;
-    width: 320px;
-    flex-shrink: 0;
-    transition: margin-left 0.4s cubic-bezier(0.4, 0, 0.2, 1);
-    position: relative;
-    z-index: 20;
+.nav-btn:hover {
+    background: var(--primary);
+    transform: scale(1.1);
 }
 
 .precision-row {
@@ -476,8 +434,8 @@ header p {
 }
 
 .nudge-btn {
-    background: var(--surface);
-    border: 1px solid var(--border);
+    background: rgba(255, 255, 255, 0.05);
+    border: 1px solid rgba(255, 255, 255, 0.1);
     color: white;
     width: 32px;
     height: 32px;
@@ -500,30 +458,28 @@ header p {
 }
 
 .map-info-sidebar h3 {
-    font-size: 1.8rem;
+    font-size: 1.5rem;
     font-weight: 800;
     color: var(--primary);
     margin-bottom: 0.2rem;
 }
 
 .map-info-sidebar p {
-    font-size: 0.95rem; /* Bigger filename text */
-    color: #f1f5f9; /* Even brighter white/grey */
+    font-size: 0.85rem;
+    color: var(--text-dim);
     line-height: 1.4;
     word-break: break-all;
-    margin-top: 0.75rem;
 }
 
 hr {
     border: 0;
-    border-top: 1px solid var(--border);
+    border-top: 1px solid rgba(255, 255, 255, 0.1);
     margin: 1rem 0;
-    opacity: 0.3;
 }
 
 .big-view {
-    width: 1000px; /* Base size */
-    max-width: none;
+    width: 1000px;
+    max-width: 90%;
     box-shadow: 0 0 50px rgba(0,0,0,0.5);
 }
 
@@ -531,28 +487,7 @@ hr {
     margin-top: auto;
     display: flex;
     flex-direction: column;
-    gap: 1rem;
-}
-
-.overlay-controls {
-    display: flex;
-    align-items: center;
-    gap: 1rem;
-    margin-top: 1rem;
-    background: rgba(255, 255, 255, 0.05);
-    padding: 0.75rem 1rem;
-    border-radius: 10px;
-}
-
-.overlay-controls input {
-    flex: 1;
-}
-
-.view-panel img, .view-panel canvas {
-    width: 100%;
-    height: auto;
-    border-radius: 8px;
-    box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.1);
+    gap: 0.75rem;
 }
 
 .loader-overlay {
