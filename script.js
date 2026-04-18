@@ -400,23 +400,25 @@ document.getElementById('btn-download-single').addEventListener('click', () => {
 async function downloadSuperimposed(code, baseImg, topImg, alpha, posX, posY, sx, sy) {
     const outputCanvas = document.createElement('canvas');
     const ctx = outputCanvas.getContext('2d');
-    outputCanvas.width = baseImg.naturalWidth; 
-    outputCanvas.height = baseImg.naturalHeight;
+    
+    // Set to A4 Landscape Resolution (approx 150-200 DPI for A4)
+    outputCanvas.width = 2000; 
+    outputCanvas.height = 1414;
 
     // Fill white background
     ctx.fillStyle = "white";
     ctx.fillRect(0, 0, outputCanvas.width, outputCanvas.height);
 
-    // Draw base (PDF render)
-    ctx.drawImage(baseImg, 0, 0);
-
-    // Get actual container dimensions for accurate ratio
+    // Get actual container dimensions for accurate ratio mapping
     const workspace = document.getElementById('overlay-workspace');
     const displayWidth = workspace.clientWidth || 1200;
     const displayHeight = workspace.clientHeight || 720;
     
     const ratioX = outputCanvas.width / displayWidth;
     const ratioY = outputCanvas.height / displayHeight;
+
+    // Draw base (PDF render) stretched to fill A4 area
+    ctx.drawImage(baseImg, 0, 0, outputCanvas.width, outputCanvas.height);
 
     ctx.save();
     ctx.globalAlpha = alpha;
@@ -500,17 +502,21 @@ async function processMapZip(mapsToDownload, zipFilename) {
                 topImg.onerror = resolve; // Continue even if top image fails
             });
 
-            // Create Final Output Canvas
+            // Create Final Output Canvas (A4 Landscape: 2000x1414)
             const finalCanvas = document.createElement('canvas');
-            finalCanvas.width = baseCanvas.width;
-            finalCanvas.height = baseCanvas.height;
+            finalCanvas.width = 2000;
+            finalCanvas.height = 1414;
             const finalCtx = finalCanvas.getContext('2d');
             
-            // Draw Base
-            finalCtx.drawImage(baseCanvas, 0, 0);
+            // Fill white background
+            finalCtx.fillStyle = "white";
+            finalCtx.fillRect(0, 0, finalCanvas.width, finalCanvas.height);
+
+            // Draw Base stretched to fill A4
+            finalCtx.drawImage(baseCanvas, 0, 0, finalCanvas.width, finalCanvas.height);
             
-            const ratioX = baseCanvas.width / screenW;
-            const ratioY = baseCanvas.height / screenH;
+            const ratioX = finalCanvas.width / screenW;
+            const ratioY = finalCanvas.height / screenH;
 
             finalCtx.save();
             finalCtx.globalAlpha = data.alpha;
@@ -524,7 +530,7 @@ async function processMapZip(mapsToDownload, zipFilename) {
             
             // Apply Multiply blend mode to match viewer
             finalCtx.globalCompositeOperation = 'multiply';
-            finalCtx.drawImage(topImg, 0, 0, baseCanvas.width, baseCanvas.height);
+            finalCtx.drawImage(topImg, 0, 0, finalCanvas.width, finalCanvas.height);
             finalCtx.restore();
 
             const blob = await new Promise(resolve => finalCanvas.toBlob(resolve, 'image/png'));

@@ -495,7 +495,7 @@ hr {
 .big-view {
     width: 100%;
     max-width: 100%;
-    aspect-ratio: 1200 / 720; /* Sets the requested landscape ratio */
+    aspect-ratio: 297 / 210; /* A4 Landscape (297mm x 210mm) */
     box-shadow: 0 0 50px rgba(0,0,0,0.5);
     height: auto;
     max-height: 100%;
