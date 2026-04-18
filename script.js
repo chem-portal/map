@@ -524,9 +524,9 @@ async function downloadSuperimposed(code, baseImg, topImg, alpha, posX, posY, sx
     ctx.fillRect(0, 0, outputCanvas.width, outputCanvas.height);
 
     // Get actual container dimensions for accurate ratio mapping
-    const workspace = document.getElementById('overlay-workspace');
-    const displayWidth = workspace.clientWidth || 1200;
-    const displayHeight = workspace.clientHeight || 720;
+    // Use fixed reference dimensions to prevent sidebar drift
+    const displayWidth = 1200;
+    const displayHeight = 848;
     
     const ratioX = outputCanvas.width / displayWidth;
     const ratioY = outputCanvas.height / displayHeight;
@@ -572,9 +572,9 @@ async function processMapZip(mapsToDownload, zipFilename) {
     const zip = new JSZip();
 
     // Capture current workspace dimensions for consistent ratios
-    const workspace = document.getElementById('overlay-workspace');
-    const screenW = workspace.clientWidth || 1200;
-    const screenH = workspace.clientHeight || 720;
+    // Use fixed reference dimensions to prevent sidebar drift
+    const screenW = 1200;
+    const screenH = 848;
 
     try {
         for (let i = 0; i < mapsToDownload.length; i++) {
@@ -711,3 +711,16 @@ window.manualAdd = async (code) => {
     currentIndex = savedMapsData.length - 1;
     updateViewer();
 };
+// PDF Replace Logic
+const btnReplacePdf = document.getElementById('btn-replace-pdf');
+const replacePdfInput = document.getElementById('replace-pdf-input');
+if(btnReplacePdf && replacePdfInput) {
+    btnReplacePdf.onclick = () => replacePdfInput.click();
+    replacePdfInput.onchange = (e) => {
+        const file = e.target.files[0];
+        if(file && savedMapsData[currentIndex]) {
+            savedMapsData[currentIndex].pdfUrl = URL.createObjectURL(file);
+            updateViewer();
+        }
+    };
+}
