@@ -72,7 +72,7 @@ function checkAndStartLocal() {
                     code: code,
                     posX: localSaved.posX || 0,
                     posY: localSaved.posY || 0,
-                    scaleX: localSaved.scaleX || 1,
+                    scaleX: localSaved.scaleX || 1.35,
                     scaleY: localSaved.scaleY || 1,
                     alpha: localSaved.alpha !== undefined ? localSaved.alpha : 1,
                     pdfUrl: URL.createObjectURL(localPdfFiles[code]),
@@ -115,7 +115,7 @@ async function loadFromCloud() {
                 code: item.code.toString().padStart(4, '0'),
                 posX: parseFloat(item.posX) || 0,
                 posY: parseFloat(item.posY) || 0,
-                scaleX: parseFloat(item.scaleX) || 1,
+                scaleX: parseFloat(item.scaleX) || 1.35,
                 scaleY: parseFloat(item.scaleY) || 1,
                 alpha: parseFloat(item.alpha) || 1,
                 // Files are expected to be in relative folders on GitHub
