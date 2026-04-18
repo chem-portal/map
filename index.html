@@ -14,6 +14,7 @@
         <header>
             <h1>Superimpose Map System</h1>
             <p>Align maps by dragging, resizing, and transparency</p>
+            <div id="build-version" style="font-size: 0.65rem; color: var(--text-dim); margin-top: 0.5rem; opacity: 0.7;">Build: 2026.04.18.2345</div>
         </header>
 
         <div class="controls glass">
@@ -66,6 +67,10 @@
                             <button id="btn-save-all-cloud" class="btn primary small" style="flex: 1;" title="Save all changes in session">☁️ Sync All</button>
                         </div>
                         <button id="btn-refresh-cloud" class="btn secondary small" style="width: 100%; margin-bottom: 0.5rem;">🔄 Refresh Cloud Data</button>
+                        <div style="display: flex; gap: 0.5rem; margin-bottom: 0.5rem;">
+                            <button id="btn-export-json" class="btn secondary small" style="flex: 1; font-size: 0.7rem;">📤 Export JSON</button>
+                            <button id="btn-import-json" class="btn secondary small" style="flex: 1; font-size: 0.7rem;">📥 Import JSON</button>
+                        </div>
                         <button id="btn-replace-img" class="btn secondary small" style="width: 100%;">🔄 Replace Image</button>
                         <input type="file" id="replace-file-input" class="hidden" accept="image/*">
                         <hr>

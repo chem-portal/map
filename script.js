@@ -293,15 +293,20 @@ async function saveToCloud() {
     btnSaveCloud.textContent = "⌛ Saving...";
     btnSaveCloud.disabled = true;
 
+    // Use URLSearchParams for better Google Apps Script compatibility
+    const params = new URLSearchParams();
+    for (const key in data) {
+        if (key.includes('Url')) continue; // Don't sync temporary blob URLs
+        params.append(key, data[key]);
+    }
+
     try {
-        // Try standard fetch first (will work if Apps Script has CORS enabled)
         await fetch(CLOUD_API_URL, {
             method: 'POST',
-            mode: 'no-cors', // Keeping no-cors as Apps Script usually requires it for simple POST
-            body: JSON.stringify(data)
+            mode: 'no-cors',
+            body: params
         });
         alert(`Map ${data.code} save request sent to cloud!`);
-        // Update lookup so it's fresh for matching
         cloudDataLookup[data.code] = {...data};
     } catch (err) {
         console.error("Cloud save error:", err);
@@ -323,10 +328,15 @@ async function saveAllToCloud() {
     try {
         for (let i = 0; i < savedMapsData.length; i++) {
             const data = savedMapsData[i];
+            const params = new URLSearchParams();
+            for (const key in data) {
+                if (key.includes('Url')) continue;
+                params.append(key, data[key]);
+            }
             await fetch(CLOUD_API_URL, {
                 method: 'POST',
                 mode: 'no-cors',
-                body: JSON.stringify(data)
+                body: params
             });
         }
         alert("Bulk sync complete! All changes pushed to cloud.");
@@ -338,6 +348,44 @@ async function saveAllToCloud() {
     btn.textContent = "☁️ Sync All";
     btn.disabled = false;
 }
+
+// Manual Export/Import
+document.getElementById('btn-export-json').addEventListener('click', () => {
+    const json = JSON.stringify(savedMapsData, null, 2);
+    const blob = new Blob([json], { type: 'application/json' });
+    const url = URL.createObjectURL(blob);
+    const link = document.createElement('a');
+    link.href = url;
+    link.download = `MapAlignments_${new Date().toISOString().split('T')[0]}.json`;
+    link.click();
+});
+
+document.getElementById('btn-import-json').addEventListener('click', () => {
+    const input = document.createElement('input');
+    input.type = 'file';
+    input.accept = '.json';
+    input.onchange = (e) => {
+        const file = e.target.files[0];
+        const reader = new FileReader();
+        reader.onload = (event) => {
+            try {
+                const data = JSON.parse(event.target.result);
+                data.forEach(item => {
+                    if (item.code) {
+                        // Ensure code is padded correctly
+                        const paddedCode = item.code.toString().padStart(4, '0');
+                        cloudDataLookup[paddedCode] = item;
+                    }
+                });
+                alert("Data imported successfully! Select your folders again to apply changes.");
+            } catch (err) {
+                alert("Invalid JSON file.");
+            }
+        };
+        reader.readAsText(file);
+    };
+    input.click();
+});
 
 btnSaveCloud.addEventListener('click', saveToCloud);
 document.getElementById('btn-save-all-cloud').addEventListener('click', saveAllToCloud);
