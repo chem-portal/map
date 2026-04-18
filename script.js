@@ -428,9 +428,9 @@ async function downloadSuperimposed(code, baseImg, topImg, alpha, posX, posY, sx
 }
 
 // --- Bulk Download ---
-document.getElementById('btn-download-all').addEventListener('click', async () => {
-    if (!savedMapsData || savedMapsData.length === 0) {
-        alert("No maps to download!");
+async function processMapZip(mapsToDownload, zipFilename) {
+    if (!mapsToDownload || mapsToDownload.length === 0) {
+        alert("No maps to download in this range!");
         return;
     }
 
@@ -439,9 +439,9 @@ document.getElementById('btn-download-all').addEventListener('click', async () =
     const zip = new JSZip();
 
     try {
-        for (let i = 0; i < savedMapsData.length; i++) {
-            progressText.textContent = `Processing map ${i + 1} of ${savedMapsData.length}...`;
-            const data = savedMapsData[i];
+        for (let i = 0; i < mapsToDownload.length; i++) {
+            progressText.textContent = `Processing map ${i + 1} of ${mapsToDownload.length}...`;
+            const data = mapsToDownload[i];
 
             // Render PDF Base
             const loadingTask = pdfjsLib.getDocument(data.pdfUrl);
@@ -504,7 +504,7 @@ document.getElementById('btn-download-all').addEventListener('click', async () =
         const zipBlob = await zip.generateAsync({ type: "blob" });
         const url = URL.createObjectURL(zipBlob);
         const link = document.createElement('a');
-        link.download = `Census_Maps.zip`;
+        link.download = zipFilename;
         link.href = url;
         link.click();
         setTimeout(() => URL.revokeObjectURL(url), 1000);
@@ -516,6 +516,33 @@ document.getElementById('btn-download-all').addEventListener('click', async () =
         progressText.textContent = "";
         loader.classList.add('hidden');
     }
+}
+
+document.getElementById('btn-download-all').addEventListener('click', () => {
+    processMapZip(savedMapsData, 'Census_Maps_All.zip');
+});
+
+document.getElementById('btn-download-batch').addEventListener('click', () => {
+    if (!savedMapsData || savedMapsData.length === 0) {
+        alert("No maps loaded!");
+        return;
+    }
+    
+    let startVal = parseInt(document.getElementById('input-batch-start').value);
+    let endVal = parseInt(document.getElementById('input-batch-end').value);
+    
+    if (isNaN(startVal) || isNaN(endVal) || startVal > endVal) {
+        alert("Please enter a valid range (e.g. From 14 To 20).");
+        return;
+    }
+    
+    // Filter maps where the numeric value of the code is within the range
+    const filteredMaps = savedMapsData.filter(map => {
+        const numCode = parseInt(map.code, 10);
+        return numCode >= startVal && numCode <= endVal;
+    });
+    
+    processMapZip(filteredMaps, `Census_Maps_${startVal}_to_${endVal}.zip`);
 });
 
 // --- Initial Setup Helper ---
