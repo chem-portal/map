@@ -222,24 +222,30 @@ function updateTransform() {
     const data = savedMapsData[currentIndex];
     if (!data) return;
     
-    // Auto-Convert legacy pixels to normalized percentage (0 to 1)
-    if (Math.abs(data.posX) > 5) data.posX /= (mainBase.clientWidth || 1200);
-    if (Math.abs(data.posY) > 5) data.posY /= (mainBase.clientHeight || 848);
+    // Fixed Reference System (1200x848)
+    const refW = 1200;
+    const refH = 848;
     
-    const x = data.posX * mainBase.clientWidth;
-    const y = data.posY * mainBase.clientHeight;
+    const displayW = mainBase.clientWidth || refW;
+    const displayH = mainBase.clientHeight || refH;
+    
+    // Scale pixel data to current display size
+    const x = data.posX * (displayW / refW);
+    const y = data.posY * (displayH / refH);
     
     mainTop.style.transform = `translate(${x}px, ${y}px) rotate(${data.rotation || 0}deg) scale(${scaleXSlider.value}, ${scaleYSlider.value})`;
 }
 
 function saveLocalData() {
-    if(isAdmin) return; // Admins save to cloud
     const data = savedMapsData[currentIndex];
     if(!data) return;
+    if(isAdmin) return; // Admins save to cloud
     
     data.alpha = parseFloat(alphaSlider.value);
     data.scaleX = parseFloat(scaleXSlider.value);
     data.scaleY = parseFloat(scaleYSlider.value);
+    data.posX = data.posX || 0;
+    data.posY = data.posY || 0;
     
     let localDataStore = JSON.parse(localStorage.getItem('censusLocalMaps')) || {};
     localDataStore[data.code] = {
@@ -248,7 +254,9 @@ function saveLocalData() {
         scaleX: data.scaleX,
         scaleY: data.scaleY,
         rotation: data.rotation || 0,
-        alpha: data.alpha
+        alpha: data.alpha,
+        refW: document.querySelector('.big-view').clientWidth || 1200,
+        refH: document.querySelector('.big-view').clientHeight || 848
     };
     localStorage.setItem('censusLocalMaps', JSON.stringify(localDataStore));
 }
@@ -442,9 +450,8 @@ window.nudgeScale = (axis, amount) => {
 window.nudgePos = (dx, dy) => {
     const data = savedMapsData[currentIndex];
     if (!data) return;
-    // Nudge relative to current size
-    data.posX += (dx / mainBase.clientWidth);
-    data.posY += (dy / mainBase.clientHeight);
+    data.posX += dx;
+    data.posY += dy;
     updateTransform();
     saveLocalData();
 };
@@ -496,20 +503,24 @@ let startX, startY;
 mainTop.addEventListener('mousedown', (e) => {
     isDragging = true;
     mainTop.style.cursor = 'grabbing';
-    const rect = mainTop.getBoundingClientRect();
-    // Offset relative to the image itself
-    startX = e.clientX - rect.left;
-    startY = e.clientY - rect.top;
+    const data = savedMapsData[currentIndex];
+    const displayW = mainBase.clientWidth || 1200;
+    const displayH = mainBase.clientHeight || 848;
+    
+    // Offset relative to virtual 1200x848 coordinates
+    startX = e.clientX - (data.posX * (displayW / 1200));
+    startY = e.clientY - (data.posY * (displayH / 848));
     e.preventDefault();
 });
 window.addEventListener('mousemove', (e) => {
     if (!isDragging) return;
     const data = savedMapsData[currentIndex];
-    const bounds = mainBase.getBoundingClientRect();
+    const displayW = mainBase.clientWidth || 1200;
+    const displayH = mainBase.clientHeight || 848;
     
-    // Normalized Coordinates (0 to 1)
-    data.posX = (e.clientX - startX - bounds.left) / mainBase.clientWidth;
-    data.posY = (e.clientY - startY - bounds.top) / mainBase.clientHeight;
+    // Save in Virtual Coordinates (Reference 1200x848)
+    data.posX = (e.clientX - startX) * (1200 / displayW);
+    data.posY = (e.clientY - startY) * (848 / displayH);
     
     updateTransform();
 });
@@ -536,19 +547,21 @@ async function downloadSuperimposed(code, baseImg, topImg, alpha, posX, posY, sx
     ctx.fillStyle = "white";
     ctx.fillRect(0, 0, outputCanvas.width, outputCanvas.height);
 
+    // Get current display dimensions for ratio mapping
+    const displayW = mainBase.clientWidth || 1200;
+    const displayH = mainBase.clientHeight || 848;
+
     // Draw base
     ctx.drawImage(baseImg, 0, 0, outputCanvas.width, outputCanvas.height);
 
     ctx.save();
     ctx.globalAlpha = alpha;
     
-    // Use normalized coordinates for perfect 2000x1414 mapping
-    let px = posX;
-    let py = posY;
-    if (Math.abs(px) > 5) px /= (mainBase.clientWidth || 1200);
-    if (Math.abs(py) > 5) py /= (mainBase.clientHeight || 848);
+    // Map Virtual Coordinates (1200x848) to Export (2000x1414)
+    const dx = posX * (2000 / 1200);
+    const dy = posY * (1414 / 848);
 
-    ctx.translate(px * 2000, py * 1414);
+    ctx.translate(dx, dy);
     
     const data = savedMapsData[currentIndex];
     if (data && data.rotation) {
@@ -581,9 +594,9 @@ async function processMapZip(mapsToDownload, zipFilename) {
     const progressText = document.getElementById('loader-progress');
     const zip = new JSZip();
 
-    // Use actual image display dimensions for perfect ratio mapping
-    const screenW = mainBase.clientWidth || 1200;
-    const screenH = mainBase.clientHeight || 848;
+    // Use fixed maximize reference dimensions for batch stability
+    const screenW = 1200;
+    const screenH = 848;
 
     try {
         for (let i = 0; i < mapsToDownload.length; i++) {
@@ -641,13 +654,10 @@ async function processMapZip(mapsToDownload, zipFilename) {
             finalCtx.save();
             finalCtx.globalAlpha = data.alpha;
             
-            // Map Normalized Coordinates (0-1) to Export (2000x1414)
-            let px = data.posX;
-            let py = data.posY;
-            if (Math.abs(px) > 5) px /= 1200; // Fallback
-            if (Math.abs(py) > 5) py /= 848;
-
-            finalCtx.translate(px * 2000, py * 1414);
+            // Map Virtual Coordinates (1200x848) to Export (2000x1414)
+            const dx = data.posX * (2000 / 1200);
+            const dy = data.posY * (1414 / 848);
+            finalCtx.translate(dx, dy);
             
             if (data.rotation) {
                 finalCtx.rotate(data.rotation * Math.PI / 180);
