@@ -8,6 +8,8 @@ let isAdmin = false;
 // --- State & DOM ---
 let savedMapsData = [];
 let currentIndex = 0;
+let isCloudLoading = false;
+let cloudDataLookup = {};
 
 const loader = document.getElementById('loader');
 const mainViewer = document.getElementById('main-viewer');
@@ -75,12 +77,10 @@ function checkAndStartLocal() {
         let matchedData = [];
         let localDataStore = JSON.parse(localStorage.getItem('censusLocalMaps')) || {};
         
-        // Create a lookup for existing cloud data loaded during initialization
-        let cloudDataLookup = {};
-        if (savedMapsData && savedMapsData.length > 0) {
-            savedMapsData.forEach(m => {
-                cloudDataLookup[m.code] = m;
-            });
+        // Use existing cloud lookup or wait if loading
+        if (isCloudLoading) {
+            alert("Cloud data is still syncing. Please wait a moment and try again.");
+            return;
         }
 
         for(let code in localBhunkshaFiles) {
@@ -134,32 +134,38 @@ function checkReady() {
 }
 
 async function loadFromCloud() {
+    isCloudLoading = true;
     loader.classList.remove('hidden');
     document.getElementById('loader-text').textContent = "Syncing with Cloud...";
     try {
         const response = await fetch(CLOUD_API_URL + "?_t=" + Date.now());
         const cloudData = await response.json();
         
+        cloudDataLookup = {}; 
         if (cloudData.length > 0) {
-            savedMapsData = cloudData.map(item => ({
-                code: item.code.toString().padStart(4, '0'),
-                posX: parseFloat(item.posX) || 0,
-                posY: parseFloat(item.posY) || 0,
-                scaleX: parseFloat(item.scaleX) === 1 ? 1.35 : (parseFloat(item.scaleX) || 1.35),
-                scaleY: parseFloat(item.scaleY) || 1,
-                rotation: parseFloat(item.rotation) || 0,
-                alpha: parseFloat(item.alpha) || 1,
-                // Files are expected to be in relative folders on GitHub
-                pdfUrl: `./pdf/${item.code.toString().padStart(4, '0')}.pdf`, 
-                pngUrl: `./bhunksha/${item.code.toString().padStart(4, '0')}.png`,
-                pdfName: `${item.code}.pdf`,
-                pngName: `${item.code}.png`
-            }));
+            savedMapsData = cloudData.map(item => {
+                const mapObj = {
+                    code: item.code.toString().padStart(4, '0'),
+                    posX: parseFloat(item.posX) || 0,
+                    posY: parseFloat(item.posY) || 0,
+                    scaleX: parseFloat(item.scaleX) || 1.35,
+                    scaleY: parseFloat(item.scaleY) || 1,
+                    rotation: parseFloat(item.rotation) || 0,
+                    alpha: parseFloat(item.alpha) || 1,
+                    pdfUrl: `./pdf/${item.code.toString().padStart(4, '0')}.pdf`, 
+                    pngUrl: `./bhunksha/${item.code.toString().padStart(4, '0')}.png`,
+                    pdfName: `${item.code}.pdf`,
+                    pngName: `${item.code}.png`
+                };
+                cloudDataLookup[mapObj.code] = mapObj;
+                return mapObj;
+            });
             showViewer();
         }
     } catch (err) {
         console.error("Cloud load error:", err);
     }
+    isCloudLoading = false;
     loader.classList.add('hidden');
 }
 
@@ -288,22 +294,54 @@ async function saveToCloud() {
     btnSaveCloud.disabled = true;
 
     try {
+        // Try standard fetch first (will work if Apps Script has CORS enabled)
         await fetch(CLOUD_API_URL, {
             method: 'POST',
-            mode: 'no-cors', // Apps Script requires no-cors for simple POST
+            mode: 'no-cors', // Keeping no-cors as Apps Script usually requires it for simple POST
             body: JSON.stringify(data)
         });
-        alert(`Map ${data.code} saved to cloud!`);
+        alert(`Map ${data.code} save request sent to cloud!`);
+        // Update lookup so it's fresh for matching
+        cloudDataLookup[data.code] = {...data};
     } catch (err) {
         console.error("Cloud save error:", err);
         alert("Error saving to cloud.");
     }
 
-    btnSaveCloud.textContent = "☁️ Save to Cloud";
+    btnSaveCloud.textContent = "☁️ Save One";
     btnSaveCloud.disabled = false;
 }
 
+async function saveAllToCloud() {
+    if (!isAdmin) return;
+    if (!confirm("This will save ALL current map alignments to the cloud. Continue?")) return;
+    
+    const btn = document.getElementById('btn-save-all-cloud');
+    btn.textContent = "⌛ Syncing All...";
+    btn.disabled = true;
+
+    try {
+        for (let i = 0; i < savedMapsData.length; i++) {
+            const data = savedMapsData[i];
+            await fetch(CLOUD_API_URL, {
+                method: 'POST',
+                mode: 'no-cors',
+                body: JSON.stringify(data)
+            });
+        }
+        alert("Bulk sync complete! All changes pushed to cloud.");
+    } catch (err) {
+        console.error("Bulk sync error:", err);
+        alert("An error occurred during bulk sync.");
+    }
+
+    btn.textContent = "☁️ Sync All";
+    btn.disabled = false;
+}
+
 btnSaveCloud.addEventListener('click', saveToCloud);
+document.getElementById('btn-save-all-cloud').addEventListener('click', saveAllToCloud);
+document.getElementById('btn-refresh-cloud').addEventListener('click', loadFromCloud);
 
 // --- Navigation & UI ---
 btnPrev.addEventListener('click', () => { if (currentIndex > 0) { currentIndex--; updateViewer(); } });

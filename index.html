@@ -61,7 +61,11 @@
                     <!-- Admin Controls -->
                     <div id="admin-controls" class="admin-only hidden">
                         <div class="admin-badge" style="background: var(--action); color: white; padding: 0.2rem 0.5rem; border-radius: 4px; font-size: 0.7rem; text-align: center; margin-bottom: 0.5rem;">🔓 Admin Mode</div>
-                        <button id="btn-save-cloud" class="btn action small" style="width: 100%; margin-bottom: 0.5rem;">☁️ Save to Cloud</button>
+                        <div style="display: flex; gap: 0.5rem; margin-bottom: 0.5rem;">
+                            <button id="btn-save-cloud" class="btn action small" style="flex: 1;" title="Save current map only">☁️ Save One</button>
+                            <button id="btn-save-all-cloud" class="btn primary small" style="flex: 1;" title="Save all changes in session">☁️ Sync All</button>
+                        </div>
+                        <button id="btn-refresh-cloud" class="btn secondary small" style="width: 100%; margin-bottom: 0.5rem;">🔄 Refresh Cloud Data</button>
                         <button id="btn-replace-img" class="btn secondary small" style="width: 100%;">🔄 Replace Image</button>
                         <input type="file" id="replace-file-input" class="hidden" accept="image/*">
                         <hr>
