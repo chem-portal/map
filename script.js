@@ -524,9 +524,9 @@ async function downloadSuperimposed(code, baseImg, topImg, alpha, posX, posY, sx
     ctx.fillRect(0, 0, outputCanvas.width, outputCanvas.height);
 
     // Get actual container dimensions for accurate ratio mapping
-    // Use fixed reference dimensions to prevent sidebar drift
-    const displayWidth = 1200;
-    const displayHeight = 848;
+    const workspace = document.getElementById('overlay-workspace');
+    const displayWidth = workspace.clientWidth || 1200;
+    const displayHeight = workspace.clientHeight || 848;
     
     const ratioX = outputCanvas.width / displayWidth;
     const ratioY = outputCanvas.height / displayHeight;
@@ -571,9 +571,9 @@ async function processMapZip(mapsToDownload, zipFilename) {
     const progressText = document.getElementById('loader-progress');
     const zip = new JSZip();
 
-    // Fix display reference to 1200px to prevent sidebar drift
-    const screenW = 1200;
-    const screenH = 848;
+    const workspace = document.getElementById('overlay-workspace');
+    const screenW = workspace.clientWidth || 1200;
+    const screenH = workspace.clientHeight || 848;
 
     try {
         for (let i = 0; i < mapsToDownload.length; i++) {
