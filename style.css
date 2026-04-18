@@ -44,7 +44,7 @@ header {
 }
 
 header h1 {
-    font-size: 3rem;
+    font-size: 2rem;
     font-weight: 600;
     margin-bottom: 0.5rem;
     background: linear-gradient(to right, #818cf8, #f472b6);
@@ -73,10 +73,10 @@ header p {
 
 .controls {
     display: flex;
-    gap: 2rem;
+    gap: 1.5rem;
     justify-content: center;
-    align-items: flex-end;
-    margin-bottom: 4rem;
+    align-items: flex-start;
+    margin-bottom: 2rem;
 }
 
 .folder-select {
