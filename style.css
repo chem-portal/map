@@ -338,6 +338,7 @@ header p {
     position: relative;
     z-index: 20;
     backdrop-filter: blur(10px);
+    overflow-y: auto; /* Enable scrolling for the sidebar */
 }
 
 .toggle-tab {
