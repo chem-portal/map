@@ -640,14 +640,18 @@ async function processMapZip(mapsToDownload, zipFilename) {
             finalCtx.fillRect(0, 0, finalCanvas.width, finalCanvas.height);
 
             // Draw Base stretched to fill A4
-            finalCtx.drawImage(baseCanvas, 0, 0, finalCanvas.width, finalCanvas.height);
+            finalCtx.drawImage(baseCanvas, 0, 0, 2000, 1414);
             
-            const ratioX = finalCanvas.width / screenW;
-            const ratioY = finalCanvas.height / screenH;
-
             finalCtx.save();
             finalCtx.globalAlpha = data.alpha;
-            finalCtx.translate(data.posX * ratioX, data.posY * ratioY);
+            
+            // Smart conversion for batch data
+            let px = data.posX;
+            let py = data.posY;
+            if (Math.abs(px) > 5) px /= 1200; // Fallback for old pixel data
+            if (Math.abs(py) > 5) py /= 848;
+            
+            finalCtx.translate(px * 2000, py * 1414);
             
             if (data.rotation) {
                 finalCtx.rotate(data.rotation * Math.PI / 180);
