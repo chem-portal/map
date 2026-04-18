@@ -240,7 +240,7 @@ header p {
     width: 100%;
     height: 100%;
     display: block;
-    object-fit: fill; /* Stretches to fill landscape area as requested */
+    object-fit: contain; /* Prevents distortion, keeps maps in sync */
 }
 
 .overlay-top {
@@ -254,7 +254,7 @@ header p {
     cursor: move;
     transform-origin: top left;
     transition: opacity 0.2s ease;
-    object-fit: fill; /* Stretches top map to match base map */
+    object-fit: contain; /* Matches base map scaling perfectly */
 }
 
 .overlay-controls .hint {
@@ -318,7 +318,7 @@ header p {
 
 .viewer-layout {
     display: flex;
-    height: calc(100vh - 120px); /* Fill remaining height after header */
+    height: calc(100vh - 160px); /* Adjusted to keep within normal laptop view */
     width: 100%;
     overflow: hidden;
     position: relative;
@@ -494,8 +494,11 @@ hr {
 .big-view {
     width: 100%;
     max-width: 100%;
+    aspect-ratio: 1200 / 720; /* Sets the requested landscape ratio */
     box-shadow: 0 0 50px rgba(0,0,0,0.5);
     height: auto;
+    max-height: 100%;
+    background: #000;
 }
 
 @media (max-width: 1024px) {
