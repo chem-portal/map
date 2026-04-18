@@ -221,7 +221,12 @@ async function updateViewer() {
 function updateTransform() {
     const data = savedMapsData[currentIndex];
     if (!data) return;
-    mainTop.style.transform = `translate(${data.posX}px, ${data.posY}px) rotate(${data.rotation || 0}deg) scale(${scaleXSlider.value}, ${scaleYSlider.value})`;
+    
+    // Use current display dimensions for relative positioning
+    const x = data.posX * mainBase.clientWidth;
+    const y = data.posY * mainBase.clientHeight;
+    
+    mainTop.style.transform = `translate(${x}px, ${y}px) rotate(${data.rotation || 0}deg) scale(${scaleXSlider.value}, ${scaleYSlider.value})`;
 }
 
 function saveLocalData() {
@@ -434,8 +439,9 @@ window.nudgeScale = (axis, amount) => {
 window.nudgePos = (dx, dy) => {
     const data = savedMapsData[currentIndex];
     if (!data) return;
-    data.posX += dx;
-    data.posY += dy;
+    // Calculate nudge relative to current display size
+    data.posX += (dx / mainBase.clientWidth);
+    data.posY += (dy / mainBase.clientHeight);
     updateTransform();
     saveLocalData();
 };
@@ -487,15 +493,19 @@ let startX, startY;
 mainTop.addEventListener('mousedown', (e) => {
     const data = savedMapsData[currentIndex];
     isDragging = true;
-    startX = e.clientX - data.posX;
-    startY = e.clientY - data.posY;
+    startX = e.clientX - (data.posX * mainBase.clientWidth);
+    startY = e.clientY - (data.posY * mainBase.clientHeight);
     e.preventDefault();
 });
 window.addEventListener('mousemove', (e) => {
     if (!isDragging) return;
+    const bounds = mainBase.getBoundingClientRect();
     const data = savedMapsData[currentIndex];
-    data.posX = e.clientX - startX;
-    data.posY = e.clientY - startY;
+    
+    // Save position as percentage of current display size
+    data.posX = (e.clientX - bounds.left - startX) / mainBase.clientWidth;
+    data.posY = (e.clientY - bounds.top - startY) / mainBase.clientHeight;
+    
     updateTransform();
 });
 window.addEventListener('mouseup', () => { 
