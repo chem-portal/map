@@ -276,6 +276,25 @@ btnSaveCloud.addEventListener('click', saveToCloud);
 btnPrev.addEventListener('click', () => { if (currentIndex > 0) { currentIndex--; updateViewer(); } });
 btnNext.addEventListener('click', () => { if (currentIndex < savedMapsData.length - 1) { currentIndex++; updateViewer(); } });
 
+const inputJumpMap = document.getElementById('input-jump-map');
+inputJumpMap.addEventListener('keypress', (e) => {
+    if (e.key === 'Enter') {
+        let targetCode = inputJumpMap.value.trim();
+        if (!targetCode) return;
+        // Pad with zeros to match standard code format
+        targetCode = targetCode.padStart(4, '0');
+        const foundIndex = savedMapsData.findIndex(m => m.code === targetCode);
+        if (foundIndex !== -1) {
+            currentIndex = foundIndex;
+            updateViewer();
+            inputJumpMap.value = '';
+            inputJumpMap.blur();
+        } else {
+            alert(`Map ID ${targetCode} not found!`);
+        }
+    }
+});
+
 btnFullscreen.addEventListener('click', () => {
     mainViewer.classList.toggle('is-fullscreen');
     btnFullscreen.textContent = mainViewer.classList.contains('is-fullscreen') ? '🗗' : '🔳';
