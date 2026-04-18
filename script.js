@@ -72,7 +72,7 @@ function checkAndStartLocal() {
                     code: code,
                     posX: localSaved.posX || 0,
                     posY: localSaved.posY || 0,
-                    scaleX: localSaved.scaleX || 1.35,
+                    scaleX: localSaved.scaleX === 1 ? 1.35 : (localSaved.scaleX || 1.35),
                     scaleY: localSaved.scaleY || 1,
                     alpha: localSaved.alpha !== undefined ? localSaved.alpha : 1,
                     pdfUrl: URL.createObjectURL(localPdfFiles[code]),
@@ -115,7 +115,7 @@ async function loadFromCloud() {
                 code: item.code.toString().padStart(4, '0'),
                 posX: parseFloat(item.posX) || 0,
                 posY: parseFloat(item.posY) || 0,
-                scaleX: parseFloat(item.scaleX) || 1.35,
+                scaleX: parseFloat(item.scaleX) === 1 ? 1.35 : (parseFloat(item.scaleX) || 1.35),
                 scaleY: parseFloat(item.scaleY) || 1,
                 alpha: parseFloat(item.alpha) || 1,
                 // Files are expected to be in relative folders on GitHub
@@ -155,8 +155,8 @@ async function updateViewer() {
         const pdf = await loadingTask.promise;
         const page = await pdf.getPage(1);
         
-        // Use a consistent scale for high quality
-        const viewport = page.getViewport({ scale: 2.5 });
+        // Use a consistent scale for high quality but faster rendering (1.5 instead of 2.5)
+        const viewport = page.getViewport({ scale: 1.5 });
         const canvas = document.createElement('canvas');
         const context = canvas.getContext('2d');
         canvas.height = viewport.height;
@@ -384,7 +384,7 @@ document.getElementById('btn-download-all').addEventListener('click', async () =
             const loadingTask = pdfjsLib.getDocument(data.pdfUrl);
             const pdf = await loadingTask.promise;
             const page = await pdf.getPage(1);
-            const viewport = page.getViewport({ scale: 2.5 });
+            const viewport = page.getViewport({ scale: 1.5 }); // Reduced from 2.5 for speed
             const baseCanvas = document.createElement('canvas');
             const baseCtx = baseCanvas.getContext('2d');
             baseCanvas.width = viewport.width;
