@@ -64,18 +64,35 @@ function checkAndStartLocal() {
     if(Object.keys(localBhunkshaFiles).length > 0 && Object.keys(localPdfFiles).length > 0) {
         let matchedData = [];
         let localDataStore = JSON.parse(localStorage.getItem('censusLocalMaps')) || {};
+        
+        // Create a lookup for existing cloud data loaded during initialization
+        let cloudDataLookup = {};
+        if (savedMapsData && savedMapsData.length > 0) {
+            savedMapsData.forEach(m => {
+                cloudDataLookup[m.code] = m;
+            });
+        }
 
         for(let code in localBhunkshaFiles) {
             if(localPdfFiles[code]) {
                 let localSaved = localDataStore[code] || {};
+                let cloudSaved = cloudDataLookup[code] || {};
+                
+                // Priority: 1. Local Browser Storage, 2. Cloud Sync Data, 3. Default Values
+                const getVal = (key, fallback) => {
+                    if (localSaved[key] !== undefined) return localSaved[key];
+                    if (cloudSaved[key] !== undefined) return cloudSaved[key];
+                    return fallback;
+                };
+
                 matchedData.push({
                     code: code,
-                    posX: localSaved.posX || 0,
-                    posY: localSaved.posY || 0,
-                    scaleX: localSaved.scaleX === 1 ? 1.35 : (localSaved.scaleX || 1.35),
-                    scaleY: localSaved.scaleY || 1,
-                    rotation: localSaved.rotation || 0,
-                    alpha: localSaved.alpha !== undefined ? localSaved.alpha : 1,
+                    posX: getVal('posX', 0),
+                    posY: getVal('posY', 0),
+                    scaleX: getVal('scaleX', 1.35),
+                    scaleY: getVal('scaleY', 1),
+                    rotation: getVal('rotation', 0),
+                    alpha: getVal('alpha', 1),
                     pdfUrl: URL.createObjectURL(localPdfFiles[code]),
                     pngUrl: URL.createObjectURL(localBhunkshaFiles[code]),
                     isLocal: true
